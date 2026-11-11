@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>منظومة متابعة الأداء الصحي - سوهاج</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f6fa;color:#18314e;font-family:Tahoma,Arial,sans-serif}
+header{background:linear-gradient(120deg,#102b4e,#1769aa);color:#fff;padding:24px 5%}
+h1{font-size:22px;margin:0 0 8px}.sub{font-size:13px;color:#d7e7f5}
+main{max-width:1200px;margin:auto;padding:22px 4%}.warning{background:#fff4d9;padding:12px;border-radius:10px;color:#805814;font-size:13px;margin-bottom:18px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}button{border:0;border-radius:9px;padding:11px 15px;cursor:pointer;font-weight:bold;font-family:inherit;background:#e4edf6;color:#244b70}button.active,button.primary{background:#1769aa;color:white}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.card,.panel{background:white;border:1px solid #e1e8f0;border-radius:14px;padding:17px;box-shadow:0 4px 15px #1938580a}
+.label{font-size:12px;color:#718096}.num{font-size:27px;font-weight:bold;margin-top:10px;direction:ltr;text-align:right}
+.panel{margin-top:15px}h2{font-size:18px;margin:0 0 15px}.bar{display:grid;grid-template-columns:110px 1fr 65px;gap:10px;align-items:center;margin:15px 0;font-size:13px}.track{height:10px;background:#edf2f7;border-radius:20px;overflow:hidden}.fill{height:100%;background:#1c91bd}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:right;padding:12px;border-bottom:1px solid #e6edf3}th{background:#f7f9fc;color:#66788d}
+.page{display:none}.page.show{display:block}.controls{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0}
+input{padding:10px;border:1px solid #ccd8e5;border-radius:8px;width:100%;font-family:inherit}.formgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.field label{display:block;font-size:12px;margin-bottom:6px;color:#5b6e82}
+footer{text-align:center;color:#8795a5;font-size:11px;padding:24px}
+@media(max-width:760px){.cards{grid-template-columns:repeat(2,1fr)}.formgrid{grid-template-columns:1fr 1fr}}@media(max-width:480px){.cards{grid-template-columns:1fr 1fr}.num{font-size:21px}.bar{grid-template-columns:85px 1fr 45px}header{padding:20px}}
+@media print{nav,.controls,.warning{display:none}body{background:white}}
+</style></head>
+<body>
+<header><h1>منظومة متابعة الأداء والمؤشرات الصحية</h1><div class="sub">مركز المعلومات والتحول الرقمي · مديرية الشئون الصحية بسوهاج</div></header>
+<main>
+<div class="warning">نسخة تجريبية ببيانات افتراضية فقط. التعديلات تحفظ في المتصفح الحالي ولا تتم مشاركتها مع أجهزة أخرى بعد.</div>
+<nav>
+<button class="active" onclick="page('home',this)">الرئيسية</button><button onclick="page('beds',this)">السعة السريرية</button><button onclick="page('staff',this)">القوى البشرية</button><button onclick="page('hospitals',this)">المستشفيات</button>
+</nav>
+<section id="home" class="page show"><h2>المؤشرات الرئيسية</h2><div class="cards" id="maincards"></div><div class="panel"><h2>ملخص المستشفيات</h2><div id="summary"></div></div></section>
+<section id="beds" class="page"><h2>السعة السريرية</h2><div class="cards" id="bedcards"></div><div class="panel"><h2>توزيع الأسرة</h2><div id="bedbars"></div></div></section>
+<section id="staff" class="page"><h2>القوى البشرية</h2><div class="cards" id="staffcards"></div><div class="panel"><h2>التوزيع الوظيفي</h2><div id="staffbars"></div></div></section>
+<section id="hospitals" class="page"><h2>المستشفيات</h2><div class="controls"><button class="primary" onclick="addHospital()">＋ إضافة مستشفى</button><button onclick="window.print()">طباعة / PDF</button></div><div class="panel" id="hospitaltable"></div></section>
+<div class="panel"><h2>تحديث بيانات العرض</h2><div class="formgrid" id="fields"></div><div class="controls"><button class="primary" onclick="save()">حفظ التعديلات</button><button onclick="resetData()">استعادة بيانات العرض</button></div></div>
+<footer>نموذج أولي قابل للتطوير · لا تستخدم البيانات التجريبية في التقارير الرسمية</footer>
+</main>
+<script>
+const initial={beds:1250,occupied:875,icu:110,nursery:95,doctors:820,nursing:2150,technicians:640,admin:510,hospitals:[{name:"سوهاج العام",beds:320,occupied:238},{name:"أخميم المركزي",beds:180,occupied:121},{name:"طهطا العام",beds:210,occupied:151},{name:"جرجا العام",beds:190,occupied:132}]};
+let d=JSON.parse(localStorage.getItem("sohag-demo")||"null")||structuredClone(initial);
+const names={beds:"إجمالي الأسرة",occupied:"الأسرة المشغولة",icu:"أسرة العنايات",nursery:"أسرة الحضانات",doctors:"الأطباء",nursing:"التمريض",technicians:"الفنيون",admin:"الإداريون"};
+const n=x=>Number(x||0).toLocaleString("en-US"),vac=()=>Math.max(0,d.beds-d.occupied),occ=()=>d.beds?100*d.occupied/d.beds:0;
+function card(k,v,sub){return `<div class="card"><div class="label">${k}</div><div class="num">${n(v)}</div><div class="label">${sub||""}</div></div>`}
+function bar(k,v,m){return `<div class="bar"><span>${k}</span><div class="track"><div class="fill" style="width:${m?100*v/m:0}%"></div></div><b>${n(v)}</b></div>`}
+function render(){
+let total=d.doctors+d.nursing+d.technicians+d.admin;
+document.querySelector("#maincards").innerHTML=card("إجمالي الأسرة",d.beds,"الطاقة السريرية")+card("الأسرة المشغولة",d.occupied,occ().toFixed(1)+"% إشغال")+card("الأسرة الشاغرة",vac(),(100-occ()).toFixed(1)+"% خلو")+card("إجمالي القوى البشرية",total,"جميع الفئات");
+document.querySelector("#bedcards").innerHTML=card("إجمالي الأسرة",d.beds,"سرير")+card("المشغولة",d.occupied,"سرير")+card("الشاغرة",vac(),"سرير")+card("أسرة العنايات",d.icu,"سرير");
+document.querySelector("#bedbars").innerHTML=bar("مشغولة",d.occupied,d.beds)+bar("شاغرة",vac(),d.beds)+bar("عنايات",d.icu,d.beds)+bar("حضانات",d.nursery,d.beds);
+document.querySelector("#staffcards").innerHTML=card("الأطباء",d.doctors,"طبيب")+card("التمريض",d.nursing,"عضو")+card("الفنيون",d.technicians,"فني")+card("الإداريون",d.admin,"إداري");
+document.querySelector("#staffbars").innerHTML=bar("الأطباء",d.doctors,total)+bar("التمريض",d.nursing,total)+bar("الفنيون",d.technicians,total)+bar("الإداريون",d.admin,total);
+let rows=d.hospitals.map(h=>`<tr><td>${h.name}</td><td>${n(h.beds)}</td><td>${n(h.occupied)}</td><td>${h.beds?(100*h.occupied/h.beds).toFixed(1):0}%</td></tr>`).join("");
+let table=`<table><tr><th>المستشفى</th><th>الأسرة</th><th>المشغولة</th><th>الإشغال</th></tr>${rows}</table>`;
+document.querySelector("#summary").innerHTML=table;document.querySelector("#hospitaltable").innerHTML=table;
+document.querySelector("#fields").innerHTML=Object.keys(names).map(k=>`<div class="field"><label>${names[k]}</label><input type="number" min="0" id="f-${k}" value="${d[k]}"></div>`).join("");
+}
+function page(id,b){document.querySelectorAll(".page").forEach(x=>x.classList.remove("show"));document.getElementById(id).classList.add("show");document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active")}
+function save(){Object.keys(names).forEach(k=>d[k]=Math.max(0,Number(document.getElementById("f-"+k).value)||0));if(d.occupied>d.beds){alert("الأسرة المشغولة لا يمكن أن تتجاوز إجمالي الأسرة");return}localStorage.setItem("sohag-demo",JSON.stringify(d));render();alert("تم حفظ التعديلات على هذا الجهاز")}
+function addHospital(){let name=prompt("اسم المستشفى");if(!name)return;let beds=Number(prompt("إجمالي الأسرة","100")),occupied=Number(prompt("الأسرة المشغولة","60"));if(!Number.isFinite(beds)||!Number.isFinite(occupied)||beds<0||occupied<0||occupied>beds){alert("أدخل أرقامًا صحيحة");return}d.hospitals.push({name,beds,occupied});localStorage.setItem("sohag-demo",JSON.stringify(d));render()}
+function resetData(){if(confirm("استعادة بيانات العرض؟")){d=structuredClone(initial);localStorage.setItem("sohag-demo",JSON.stringify(d));render()}}
+render();
+</script></body></html>
